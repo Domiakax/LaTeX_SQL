@@ -16,8 +16,8 @@ import org.nocrala.tools.texttablefmt.Table;
 
 public class ResultTablesNeu {
 	
-	private static final String pathSQLFiles ="D:\\GitHub Repositories\\LF-8";
-	private static final String db = "gm3";
+	private static final String pathSQLFiles ="C:\\Users\\ACK\\Documents\\GitHub\\LF-8\\";
+	private static final String db = "gmWithProblems";
 	private static final String folderNameTheory = "SQLFiles_Theorie";
 	private static final String folderNameAufgaben = "SQLFiles_Aufgaben";
 	private static final String SQLFileNameBeginning = "sqlFile";
@@ -96,27 +96,36 @@ public class ResultTablesNeu {
 			String sqlCommands = build.toString();
 			sqlCommands = sqlCommands.replace("\\%", "%");
 			System.out.println(sqlCommands);
-			sqlCommands = sqlCommands.toLowerCase();
-			boolean printDots = !(sqlCommands.contains("limit 1 ") || sqlCommands.contains("limit 1;") || !sqlCommands.contains("limit"));
-			System.out.println(printDots);
+//			sqlCommands = sqlCommands.toLowerCase();
+//			sqlCommands = sqlCommands.replaceAll("Limit", "limit");
+//			sqlCommands = sqlCommands.replaceAll("Select", "select");
+			sqlCommands = sqlCommands.trim();
+//			sqlCommands.split("as");
+			boolean printDots = !(sqlCommands.matches("(?i).*limit 1 .*") || sqlCommands.matches("(?i).*limit 1;") || !sqlCommands.matches("(?i).*limit.*"));
+			System.out.println("Print Dots: "+ printDots);
 			Statement st = con.createStatement();
 			String[] commands = sqlCommands.split(";");
+//			System.out.println("Länge: " +commands.length);
 			for(String command : commands) {
 				command = command.concat(";");
 				int rowNumberToShow = -1;
 				//Nur bei Aufgaben, mit printDots und Select Befehlen
-				if(isSQLAufgabenFolder && printDots && command.startsWith("select")) {
+				if(isSQLAufgabenFolder && printDots && command.matches("(?i)select.*")) {
+					System.out.println("Anzahl Datensätze extrahieren");
 					try {
-						rowNumberToShow = Integer.parseInt(command.split("limit ")[1].replace(";", ""));
-						String regEx = "limit [2-9]+[0-9]*|limit [1-9]+[0-9]+";
+						rowNumberToShow = Integer.parseInt(command.split("(?i)limit ")[1].replace(";", ""));
+						String regEx = "(?i)limit [2-9]+[0-9]*|(?i)limit [1-9]+[0-9]+";
 						command = command.replaceFirst(regEx, "");
 					}
 					catch(Exception e) {
 						e.printStackTrace();
 					}
 				}
+				System.out.println("ausführen: " + command);
 				if(st.execute(command)) {
+					System.out.println("Resultset: " + command);
 					ResultSet result = st.getResultSet();
+//					System.out.println(result + "result");
 					Path parentFolder = file.getParent();
 					printResultSetToFile(parentFolder, createOutputFileName(file.getFileName().toString()),result, printDots, rowNumberToShow);
 				}
@@ -152,20 +161,22 @@ public class ResultTablesNeu {
 				for (int col = 1; col <= colcnt; col++) {
 					t.addCell("...");
 				}
+				writer.write(t.render());
 				if(printResultNumber) {
-					writer.write(t.render());
 					rs.last();
 					int number = rs.getRow();
-					writer.write("\n");
+//					writer.write("\n");
+					writer.newLine();
 					writer.write(textAnzahlDatensätze.concat("" + number));
 				}
 			}
 			else {
 				writer.write(t.render());
 			}
+			System.out.println("ResultSet");
+			System.out.println(t.render());
 			writer.flush();
 			writer.close();
-			System.out.println("hello");
 		} catch (IOException | SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
